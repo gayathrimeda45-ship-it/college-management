@@ -1,0 +1,707 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>College Management — Final (Feedback + Chat + Reminders + Dark Theme)</title>
+<style>
+  :root{
+    --bg:#f6f8fb; --card:#fff; --text:#0b1724; --muted:#6b7280; --accent:#0b74de;
+    --success:#0b7a3a; --danger:#b33636; --glass:rgba(11,17,34,0.04);
+  }
+  [data-theme="dark"]{
+    --bg:#0b1220; --card:#071226; --text:#e6eef8; --muted:#9aa3b2; --accent:#58a6ff;
+    --success:#5ce08a; --danger:#ff7a7a; --glass:rgba(255,255,255,0.04);
+  }
+  *{box-sizing:border-box}
+  body{font-family:Inter,Segoe UI,Roboto,Arial; margin:0; padding:18px; background:var(--bg); color:var(--text)}
+  .container{max-width:1200px;margin:0 auto}
+  header{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+  h1{font-size:18px;margin:0}
+  .top-right{margin-left:auto;display:flex;gap:8px;align-items:center}
+  .tabs{display:flex;gap:8px;margin:12px 0}
+  .tab{padding:8px 12px;border-radius:8px;background:var(--card);border:1px solid var(--glass);cursor:pointer}
+  .tab.active{border-color:var(--accent);color:var(--accent);font-weight:600;box-shadow:0 6px 18px rgba(11,20,40,0.06)}
+  .card{background:var(--card);box-shadow:0 6px 18px var(--glass);border-radius:10px;padding:14px;margin-bottom:12px}
+  input[type="text"], textarea, input[type="date"], select {width:100%;padding:8px;border-radius:8px;border:1px solid var(--glass);background:transparent;color:var(--text)}
+  textarea{min-height:80px;resize:vertical}
+  label{display:block;font-size:13px;color:var(--muted);margin-bottom:6px}
+  .hod-list{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+  .hod-item{background:transparent;padding:8px;border-radius:8px;border:1px solid var(--glass);display:flex;align-items:center;gap:8px}
+  button{background:var(--accent);color:#fff;padding:8px 12px;border-radius:8px;border:0;cursor:pointer}
+  button.ghost{background:transparent;color:var(--accent);border:1px solid var(--glass)}
+  .two-col{display:grid;grid-template-columns:1fr 420px;gap:14px}
+  .assignment{border:1px solid var(--glass);padding:10px;border-radius:8px;margin-bottom:10px;background:transparent}
+  .small{font-size:13px;color:var(--muted)}
+  .no-data{padding:12px;text-align:center;color:var(--muted);background:transparent;border-radius:8px;border:1px dashed var(--glass)}
+  .badge{padding:6px 8px;border-radius:8px;background:transparent;border:1px solid var(--glass);font-weight:600}
+  .modal{position:fixed;left:0;top:0;width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.35);z-index:9999}
+  .modal-card{width:96%;max-width:920px;background:var(--card);border-radius:10px;padding:14px;max-height:86vh;overflow:auto;box-shadow:0 10px 40px var(--glass)}
+  .thread{ border-top:1px solid var(--glass); padding-top:10px; margin-top:10px }
+  .msg{ padding:8px; border-radius:8px; margin-bottom:8px; display:block; background:rgba(11,117,222,0.08) }
+  .msg.hod{ background: rgba(11,122,58,0.06) }
+  .meta-row{display:flex;gap:10px;align-items:center}
+  .danger{color:var(--danger)}
+  .success{color:var(--success)}
+  .flex{display:flex;gap:8px;align-items:center}
+  .right{margin-left:auto}
+  .filters{display:flex;gap:8px;align-items:center;margin-top:8px}
+  /* Chat styles */
+  .chat-btn{position:fixed;right:18px;bottom:18px;background:var(--accent);color:#fff;border-radius:50%;width:56px;height:56px;border:0;font-weight:700;box-shadow:0 10px 30px rgba(11,35,90,0.18);cursor:pointer;z-index:9998}
+  .chat-panel{position:fixed;right:18px;bottom:86px;width:360px;max-height:520px;background:var(--card);border-radius:10px;box-shadow:0 12px 36px rgba(9,30,66,0.18);overflow:hidden;display:flex;flex-direction:column;z-index:9998}
+  .chat-header{padding:10px;border-bottom:1px solid var(--glass);background:transparent;display:flex;gap:8px;align-items:center}
+  .chat-body{flex:1;padding:8px;overflow:auto;background:transparent}
+  .chat-input{display:flex;padding:8px;border-top:1px solid var(--glass)}
+  .chat-input input{flex:1;padding:8px;border-radius:8px;border:1px solid var(--glass);background:transparent;color:var(--text)}
+  .chat-msg{margin-bottom:8px;padding:8px;border-radius:8px;background:var(--card);border:1px solid var(--glass)}
+  .chat-msg.me{background:linear-gradient(90deg,#eaf4ff22,#fff);border-color:var(--accent)}
+  @media (max-width:980px){ .two-col{grid-template-columns:1fr} .chat-panel{right:12px;left:12px;width:auto} }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <div style="width:46px;height:46px;border-radius:8px;background:linear-gradient(180deg,var(--accent)22,var(--accent)11)"></div>
+    <div>
+      <h1>College Management — Final</h1>
+      <div class="small">Threads, Overdue reminders, Chat, Verify, CSV export, Dark theme.</div>
+    </div>
+
+    <div class="top-right">
+      <div class="small">Theme</div>
+      <button id="theme-btn" class="ghost">Toggle</button>
+      <button id="export-csv" class="ghost">Export CSV</button>
+      <button id="open-chat" class="ghost">Chat</button>
+    </div>
+  </header>
+
+  <div class="tabs">
+    <div class="tab active" data-tab="principal">Principal</div>
+    <div class="tab" data-tab="hod">HOD</div>
+    <div class="tab" data-tab="data">Data</div>
+  </div>
+
+  <!-- Principal -->
+  <section id="principal" class="card" style="display:block">
+    <div class="two-col">
+      <div>
+        <label>Work Title</label>
+        <input id="p-title" type="text" placeholder="e.g., Submit department budget report">
+        <label style="margin-top:8px">Description</label>
+        <textarea id="p-desc" placeholder="Describe the work..."></textarea>
+        <label style="margin-top:8px">Due Date</label>
+        <input id="p-due" type="date">
+        <label style="margin-top:8px">Select HOD(s)</label>
+        <div class="hod-list" id="principal-hod-list"></div>
+        <div style="margin-top:10px;display:flex;gap:8px">
+          <button id="assign-btn">Assign</button>
+          <button id="clear-btn" class="ghost">Clear</button>
+        </div>
+
+        <div class="filters">
+          <label class="small">Filter dept</label>
+          <select id="dept-filter"></select>
+          <label class="small">Status</label>
+          <select id="status-filter"><option value="all">All</option><option value="assigned">Assigned</option><option value="in_progress">In Progress</option><option value="completed">Completed</option></select>
+        </div>
+      </div>
+
+      <div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <h3 style="margin:0">Works Overview</h3>
+          <div class="right small" style="margin-left:auto">Click Details to open feedback thread & verify.</div>
+        </div>
+        <div id="works-overview" style="margin-top:12px"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- HOD -->
+  <section id="hod" class="card" style="display:none">
+    <div style="display:flex;gap:12px;align-items:center">
+      <label class="small">Select HOD</label>
+      <select id="hod-select" style="max-width:320px"></select>
+      <div class="right"><span class="badge" id="hod-count">0</span></div>
+      <button id="check-overdue" class="ghost">Check Overdue</button>
+    </div>
+
+    <div style="margin-top:12px">
+      <h3 style="margin:6px 0">My Assignments</h3>
+      <div id="hod-list"></div>
+    </div>
+  </section>
+
+  <!-- DATA -->
+  <section id="data" class="card" style="display:none">
+    <div style="display:flex;gap:12px;flex-wrap:wrap">
+      <div style="flex:1;min-width:240px">
+        <label class="small">Add Department</label>
+        <input id="new-dept-name" placeholder="Department name">
+        <div style="margin-top:8px"><button id="add-dept-btn" class="ghost">Add Dept</button></div>
+      </div>
+      <div style="flex:1;min-width:240px">
+        <label class="small">Add HOD</label>
+        <input id="new-hod-name" placeholder="HOD name">
+        <label class="small">Department</label>
+        <select id="new-hod-dept"></select>
+        <div style="margin-top:8px"><button id="add-hod-btn" class="ghost">Add HOD</button></div>
+      </div>
+      <div style="width:220px">
+        <label class="small">Sample & Reset</label>
+        <div style="display:flex;flex-direction:column;gap:8px;margin-top:6px">
+          <button id="insert-sample" class="ghost">Insert Sample</button>
+          <button id="wipe" class="ghost">Wipe Data</button>
+        </div>
+      </div>
+    </div>
+
+    <div style="margin-top:12px">
+      <h3>Users</h3>
+      <div id="users-table"></div>
+    </div>
+  </section>
+</div>
+
+<!-- modal root -->
+<div id="modal-root" style="display:none"></div>
+
+<!-- Chat button and panel -->
+<button id="chat-button" class="chat-btn">💬</button>
+<div id="chat-panel" class="chat-panel" style="display:none">
+  <div class="chat-header">
+    <div style="font-weight:700">Chat</div>
+    <select id="chat-room" style="margin-left:8px"></select>
+    <button id="close-chat" class="ghost" style="margin-left:auto">Close</button>
+  </div>
+  <div id="chat-body" class="chat-body"></div>
+  <div class="chat-input">
+    <input id="chat-input" placeholder="Message...">
+    <button id="chat-send" class="ghost">Send</button>
+  </div>
+</div>
+
+<script>
+/* Complete single-file app with:
+   - per-assignment feedback threads
+   - overdue reminders popup for HODs
+   - chat system (global, dept-<id>, work-<id>)
+   - dark/light theme toggle
+   - CSV export
+   - persistent via localStorage (key cms-upgrade-final)
+*/
+
+const STORAGE_KEY = 'cms-upgrade-final';
+
+function nowISO(){ return new Date().toISOString(); }
+function uid(pref='id'){ return pref + '-' + Math.random().toString(36).slice(2,9); }
+
+function load(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(!raw){
+      const base = { departments:[], users:[], works:[], assignments:[], chats:[] };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(base));
+      return base;
+    }
+    return JSON.parse(raw);
+  }catch(e){ return { departments:[], users:[], works:[], assignments:[], chats:[] }; }
+}
+function save(data){ localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); }
+
+// Theme
+function applyTheme(t){
+  document.documentElement.setAttribute('data-theme', t);
+  localStorage.setItem('cms-theme', t);
+  document.getElementById('theme-btn').textContent = t === 'dark' ? '🌙' : '☀️';
+}
+function initTheme(){ const t = localStorage.getItem('cms-theme') || 'light'; applyTheme(t); }
+
+// --- Sample data ---
+function ensureSample(){
+  const d = load();
+  if(d.users.length === 0){
+    const deps = ['Computer Science','Electronics','Mechanical','Civil','Electrical','IT'];
+    deps.forEach((n,i)=> d.departments.push({ id:'dep'+(i+1), name:n }));
+    d.users.push({ id:'u-pr', name:'Principal - Dr. K', role:'principal' });
+    d.departments.forEach((dep, idx) => d.users.push({ id:'hod-'+(idx+1), name:`HOD ${dep.name}`, role:'hod', departmentId:dep.id }));
+    const pr = d.users.find(u=>u.role==='principal');
+    // sample works & assignments
+    const w1 = { id:'w1', title:'Submit Budget', description:'Annual budget report', createdBy: pr.id, dueDate: null, createdAt: nowISO() };
+    d.works.push(w1);
+    const hods = d.users.filter(u=>u.role==='hod');
+    d.assignments.push({ id:'a1', workId:w1.id, hodId:hods[0].id, status:'assigned', assignedAt: nowISO(), completedAt:null, verifiedAt:null, verifiedBy:null, comments:[] });
+    d.assignments.push({ id:'a2', workId:w1.id, hodId:hods[1].id, status:'completed', assignedAt: nowISO(), completedAt: nowISO(), verifiedAt:null, verifiedBy:null, comments:[{ id: uid('c'), senderId:hods[1].id, senderName:hods[1].name, role:'hod', text:'Submitted via mail', ts: nowISO() }] });
+    // chats
+    d.chats.push({ id: uid('ch'), room:'global', senderId: pr.id, senderName: pr.name, role: 'principal', text:'Welcome to the project demo chat (global).', ts: nowISO() });
+    save(d);
+  }
+}
+
+// ---------- Rendering ----------
+
+function renderPrincipalHodList(){
+  const d = load();
+  const wrap = document.getElementById('principal-hod-list'); if(!wrap) return;
+  wrap.innerHTML = '';
+  d.users.filter(u=>u.role==='hod').forEach(h=>{
+    const dep = d.departments.find(x=>x.id===h.departmentId);
+    const div = document.createElement('div'); div.className = 'hod-item';
+    div.innerHTML = `<label><input type="checkbox" data-id="${h.id}"> <strong style="margin-left:6px">${escape(h.name)}</strong><div class="small" style="margin-left:8px">${dep?escape(dep.name):'—'}</div></label>`;
+    wrap.appendChild(div);
+  });
+}
+
+function buildDeptFilterAndNewHodSelect(){
+  const d = load();
+  const sel = document.getElementById('dept-filter'); sel.innerHTML = '<option value="all">All Departments</option>';
+  const sel2 = document.getElementById('new-hod-dept'); sel2.innerHTML = '';
+  d.departments.forEach(dep => {
+    const o = document.createElement('option'); o.value = dep.id; o.textContent = dep.name; sel.appendChild(o);
+    const o2 = document.createElement('option'); o2.value = dep.id; o2.textContent = dep.name; sel2.appendChild(o2);
+  });
+}
+
+function renderWorksOverview(){
+  const d = load();
+  const wrap = document.getElementById('works-overview'); wrap.innerHTML='';
+  const deptFilter = document.getElementById('dept-filter') ? document.getElementById('dept-filter').value : 'all';
+  const statusFilter = document.getElementById('status-filter') ? document.getElementById('status-filter').value : 'all';
+  const works = d.works.slice().reverse();
+  if(works.length === 0){ wrap.innerHTML = '<div class="no-data">No works</div>'; return; }
+
+  works.forEach(w=>{
+    let assigns = d.assignments.filter(a=>a.workId===w.id);
+    if(deptFilter !== 'all') assigns = assigns.filter(a => { const hod = d.users.find(u=>u.id===a.hodId); return hod && hod.departmentId === deptFilter; });
+    if(statusFilter !== 'all') assigns = assigns.filter(a => a.status === statusFilter);
+    if(assigns.length === 0) return;
+    const total = assigns.length;
+    const completed = assigns.filter(a=>a.status==='completed').length;
+    const verified = assigns.filter(a=>a.verifiedAt).length;
+    const row = document.createElement('div'); row.className = 'assignment';
+    row.innerHTML = `<div style="display:flex;align-items:center;gap:8px">
+      <div style="flex:1"><strong>${escape(w.title)}</strong><div class="small">${escape(w.description||'')}</div></div>
+      <div class="small" style="min-width:80px">Assigned: ${total}</div>
+      <div class="small" style="min-width:80px">Completed: ${completed}</div>
+      <div class="small" style="min-width:120px">Verified: ${verified}</div>
+      <div style="min-width:120px"><button class="ghost" data-details="${w.id}">Details</button> <button class="ghost" data-chat="${w.id}">Chat</button></div>
+    </div>`;
+    wrap.appendChild(row);
+  });
+
+  // details & quick chat button
+  wrap.querySelectorAll('button[data-details]').forEach(b => b.addEventListener('click', ()=> showWorkDetails(b.getAttribute('data-details'))));
+  wrap.querySelectorAll('button[data-chat]').forEach(b => b.addEventListener('click', ()=> { openChatPanel(); populateChatRooms(); document.getElementById('chat-room').value = 'work-' + b.getAttribute('data-chat'); renderChatBody(); }));
+}
+
+function renderHodSelectAndList(){
+  const d = load();
+  const sel = document.getElementById('hod-select'); if(!sel) return; sel.innerHTML = '';
+  d.users.filter(u=>u.role==='hod').forEach(h => { const o = document.createElement('option'); o.value = h.id; o.textContent = h.name; sel.appendChild(o); });
+  renderHodList();
+}
+
+function renderHodList(){
+  const d = load();
+  const hodId = document.getElementById('hod-select') ? document.getElementById('hod-select').value : null;
+  const wrap = document.getElementById('hod-list'); if(!wrap) return; wrap.innerHTML = '';
+  if(!hodId){ wrap.innerHTML = '<div class="no-data">No HODs</div>'; return; }
+  const assigns = d.assignments.filter(a=>a.hodId===hodId).slice().reverse();
+  document.getElementById('hod-count').textContent = assigns.length;
+  if(assigns.length===0){ wrap.innerHTML = '<div class="no-data">No assignments</div>'; return; }
+  assigns.forEach(a=>{
+    const work = d.works.find(w=>w.id===a.workId) || {};
+    const div = document.createElement('div'); div.className = 'assignment';
+    const statusText = a.status === 'completed' ? `Completed: ${format(a.completedAt)}` : (a.status === 'in_progress' ? 'In progress' : 'Assigned');
+    div.innerHTML = `<div style="display:flex;align-items:center;gap:8px">
+      <label style="display:flex;align-items:center;gap:8px"><input type="checkbox" data-a="${a.id}" ${a.status==='completed'?'checked':''}> <strong>${escape(work.title)}</strong></label>
+      <div class="right small">${statusText}</div>
+    </div>
+    <div class="small">${escape(work.description||'')}</div>
+    <div class="meta"><div class="small">Assigned: ${format(a.assignedAt)}</div><div class="small">Due: ${work.dueDate||'—'}</div></div>
+    <div style="margin-top:8px;display:flex;gap:8px">
+      <input placeholder="Quick remark..." data-quick="${a.id}" style="flex:1;padding:6px;border-radius:6px;border:1px solid var(--glass)">
+      <button data-quick-save="${a.id}" class="ghost">Save remark</button>
+      <button data-open="${a.id}" class="ghost">Open</button>
+    </div>`;
+    wrap.appendChild(div);
+
+    div.querySelector(`input[data-a="${a.id}"]`).addEventListener('change', (e)=>{
+      const checked = e.target.checked;
+      if(!checked){
+        // show report problem modal
+        showReportProblemModal(a.id);
+      }
+      updateAssignmentStatus(a.id, checked ? 'completed' : 'assigned');
+    });
+
+    div.querySelector(`button[data-quick-save="${a.id}"]`).addEventListener('click', ()=>{
+      const val = div.querySelector(`input[data-quick="${a.id}"]`).value.trim();
+      if(!val){ alert('Enter remark'); return; }
+      const hod = load().users.find(u=>u.id===document.getElementById('hod-select').value);
+      addCommentToAssignment(a.id, { senderId: hod.id, senderName: hod.name, senderRole:'hod', text: val });
+      div.querySelector(`input[data-quick="${a.id}"]`).value='';
+      alert('Remark saved to thread');
+      renderHodList();
+    });
+
+    div.querySelector(`button[data-open="${a.id}"]`).addEventListener('click', ()=> showAssignmentModal(a.id));
+  });
+}
+
+// ---------- Modal / Details / Threads ----------
+function openModal(innerHtml){
+  const root = document.getElementById('modal-root'); root.style.display = 'block'; root.innerHTML = '';
+  const modal = document.createElement('div'); modal.className = 'modal';
+  const card = document.createElement('div'); card.className = 'modal-card';
+  card.innerHTML = innerHtml;
+  modal.appendChild(card); root.appendChild(modal);
+  modal.addEventListener('click', (e)=> { if(e.target === modal){ root.style.display = 'none'; root.innerHTML = ''; }});
+  return card;
+}
+
+function showWorkDetails(workId){
+  const d = load(); const w = d.works.find(x=>x.id===workId); if(!w) return;
+  const assigns = d.assignments.filter(a=>a.workId===workId);
+  let html = `<div style="display:flex;gap:8px;align-items:center"><h3 style="margin:0">${escape(w.title)}</h3><button id="close-detail" class="ghost" style="margin-left:auto">Close</button></div>
+    <div class="small" style="margin-top:8px">${escape(w.description||'')}</div>
+    <div style="margin-top:10px"><table style="width:100%;border-collapse:collapse"><thead><tr><th>HOD</th><th>Dept</th><th>Status</th><th>Completed At</th><th>Verified</th><th>Action</th></tr></thead><tbody>`;
+  assigns.forEach(a=>{
+    const hod = d.users.find(u=>u.id===a.hodId) || { name:'Unknown' };
+    const dept = d.departments.find(x=>x.id===hod.departmentId) || { name:'-' };
+    html += `<tr style="border-bottom:1px solid var(--glass)"><td>${escape(hod.name)}</td><td>${escape(dept.name)}</td><td>${escape(a.status)}</td><td>${a.completedAt?escape(format(a.completedAt)):'-'}</td><td>${a.verifiedAt?escape(format(a.verifiedAt)):'-'}</td><td>${a.status==='completed'?`<button class="ghost verify-btn" data-a="${a.id}">${a.verifiedAt?'Un-verify':'Verify'}</button>`:'-'}</td></tr>`;
+  });
+  html += `</tbody></table></div>
+    <div style="margin-top:12px">
+      <h4>Feedback / Thread</h4>
+      <div id="thread-wrap" class="thread"></div>
+      <div style="margin-top:8px;display:flex;gap:8px"><input id="thread-input" placeholder="Write a message (Principal will be sender)"><button id="thread-send" class="ghost">Send</button></div>
+    </div>
+    <div style="margin-top:10px"><button id="reminder-send" class="ghost">Send Reminder to all HODs (adds thread message)</button></div>`;
+  const card = openModal(html);
+  card.querySelector('#close-detail').addEventListener('click', ()=> { document.getElementById('modal-root').style.display='none'; document.getElementById('modal-root').innerHTML=''; });
+  card.querySelectorAll('.verify-btn').forEach(btn => btn.addEventListener('click', ()=>{
+    toggleVerifyAssignment(btn.getAttribute('data-a'));
+    showWorkDetails(workId);
+  }));
+  renderThreadForWork(workId);
+  card.querySelector('#thread-send').addEventListener('click', ()=>{
+    const text = card.querySelector('#thread-input').value.trim(); if(!text){ alert('Enter message'); return; }
+    const d2 = load(); const pr = d2.users.find(u=>u.role==='principal') || d2.users[0];
+    // add same message to all assignments of this work
+    d2.assignments.filter(a=>a.workId===workId).forEach(a => addCommentToAssignment(a.id, { senderId: pr.id, senderName: pr.name, senderRole:'principal', text }));
+    save(d2); renderThreadForWork(workId); card.querySelector('#thread-input').value=''; // also push a chat message to work room
+    d2.chats.push({ id: uid('ch'), room: 'work-'+workId, senderId: pr.id, senderName: pr.name, role:'principal', text: 'Reminder / Message: '+text, ts: nowISO() });
+    save(d2); populateChatRooms(); refreshChatIfOpen();
+  });
+  card.querySelector('#reminder-send').addEventListener('click', ()=>{
+    if(!confirm('Send reminder message to all assigned HODs?')) return;
+    const d3 = load(); const pr = d3.users.find(u=>u.role==='principal') || d3.users[0];
+    d3.assignments.filter(a=>a.workId===workId).forEach(a => addCommentToAssignment(a.id, { senderId: pr.id, senderName: pr.name, senderRole:'principal', text: 'Reminder: please complete or report blocker.' }));
+    save(d3); renderThreadForWork(workId);
+    d3.chats.push({ id: uid('ch'), room: 'work-'+workId, senderId: pr.id, senderName: pr.name, role:'principal', text: 'Reminder: please complete or report blocker.', ts: nowISO() });
+    save(d3); populateChatRooms(); refreshChatIfOpen(); alert('Reminder sent');
+  });
+}
+
+function showAssignmentModal(assignId){
+  const d = load(); const a = d.assignments.find(x=>x.id===assignId); if(!a) return;
+  const w = d.works.find(x=>x.id===a.workId) || {};
+  const hod = d.users.find(u=>u.id===a.hodId) || { name:'Unknown' };
+  let html = `<div style="display:flex;gap:8px;align-items:center"><h3 style="margin:0">${escape(w.title)}</h3><button id="close-assign" class="ghost" style="margin-left:auto">Close</button></div>
+    <div class="small" style="margin-top:8px">Assigned to: ${escape(hod.name)}</div>
+    <div style="margin-top:10px"><strong>Status:</strong> ${escape(a.status)} ${a.status!=='completed'?`<button id="report-prob" class="ghost" style="margin-left:8px">Report Problem</button>`:''}</div>
+    <div style="margin-top:10px"><h4>Thread</h4><div id="assign-thread" class="thread"></div>
+      <div style="margin-top:8px;display:flex;gap:8px"><input id="assign-msg" placeholder="Write message (you will be sender)"><button id="assign-send" class="ghost">Send</button></div>
+    </div>`;
+  const card = openModal(html);
+  card.querySelector('#close-assign').addEventListener('click', ()=> { document.getElementById('modal-root').style.display='none'; document.getElementById('modal-root').innerHTML=''; });
+  card.querySelector('#report-prob')?.addEventListener('click', ()=> { document.getElementById('modal-root').style.display='none'; document.getElementById('modal-root').innerHTML=''; showReportProblemModal(assignId); });
+  renderAssignmentThread(assignId);
+  card.querySelector('#assign-send').addEventListener('click', ()=>{
+    const text = card.querySelector('#assign-msg').value.trim(); if(!text){ alert('Enter message'); return; }
+    const d2 = load(); const sender = (document.getElementById('hod').style.display !== 'none') ? d2.users.find(u=>u.id === document.getElementById('hod-select').value) : d2.users.find(u=>u.role==='principal');
+    addCommentToAssignment(assignId, { senderId: sender.id, senderName: sender.name, senderRole: sender.role, text });
+    save(d2); renderAssignmentThread(assignId);
+  });
+}
+
+function renderThreadForWork(workId){
+  const d = load();
+  const wrap = document.getElementById('thread-wrap'); if(!wrap) return;
+  wrap.innerHTML = '';
+  const assigns = d.assignments.filter(a=>a.workId===workId);
+  let msgs = [];
+  assigns.forEach(a => (a.comments || []).forEach(c => msgs.push({ ...c, assignmentId: a.id, hodId: a.hodId })));
+  msgs = msgs.sort((x,y)=> new Date(x.ts) - new Date(y.ts));
+  if(msgs.length === 0){ wrap.innerHTML = '<div class="small">No messages yet</div>'; return; }
+  msgs.forEach(m => {
+    const el = document.createElement('div'); el.className = 'msg ' + (m.role === 'hod' ? 'hod' : '');
+    el.innerHTML = `<div style="font-size:13px;font-weight:600">${escape(m.senderName)} <span class="small" style="font-weight:400">(${escape(m.role)})</span> <span class="small" style="color:var(--muted);margin-left:8px">${format(m.ts)}</span></div><div style="margin-top:6px">${escape(m.text)}</div>`;
+    wrap.appendChild(el);
+  });
+}
+
+function renderAssignmentThread(assignId){
+  const d = load(); const a = d.assignments.find(x=>x.id===assignId); if(!a) return;
+  const wrap = document.getElementById('assign-thread'); if(!wrap) return; wrap.innerHTML = '';
+  const msgs = (a.comments || []).slice().sort((x,y)=> new Date(x.ts) - new Date(y.ts));
+  if(msgs.length === 0){ wrap.innerHTML = '<div class="small">No messages</div>'; return; }
+  msgs.forEach(m => {
+    const el = document.createElement('div'); el.className = 'msg ' + (m.role === 'hod' ? 'hod' : '');
+    el.innerHTML = `<div style="font-size:13px;font-weight:600">${escape(m.senderName)} <span class="small" style="font-weight:400">(${escape(m.role)})</span> <span class="small" style="color:var(--muted);margin-left:8px">${format(m.ts)}</span></div><div style="margin-top:6px">${escape(m.text)}</div>`;
+    wrap.appendChild(el);
+  });
+}
+
+// ---------- Comments / remarks ----------
+function addCommentToAssignment(assignId, { senderId=null, senderName=null, senderRole='user', text='' }){
+  const d = load();
+  const a = d.assignments.find(x=>x.id===assignId);
+  if(!a) return;
+  if(!a.comments) a.comments = [];
+  const sender = d.users.find(u => u.id === senderId) || (senderName ? { name: senderName } : { name: 'User' });
+  const comment = { id: uid('c'), senderId: senderId || (sender.id || 'sys'), senderName: senderName || sender.name || 'User', role: senderRole || 'user', text, ts: nowISO() };
+  a.comments.push(comment);
+  // if comment is reporting a problem (HOD sending), also create a chat message in work room
+  if(senderRole === 'hod' && text && a.workId){
+    d.chats.push({ id: uid('ch'), room: 'work-' + a.workId, senderId: sender.id || 'sys', senderName: sender.name || 'HOD', role: 'hod', text: 'Problem reported: ' + text, ts: nowISO() });
+  }
+  save(d);
+}
+
+// ---------- Overdue reminders & reporting problem ----------
+function checkOverdueForSelectedHodAndPopup(){
+  const sel = document.getElementById('hod-select'); if(!sel) return;
+  const hodId = sel.value; if(!hodId) return;
+  const d = load();
+  const today = new Date().toISOString().slice(0,10);
+  const overdue = d.assignments.filter(a => a.hodId === hodId && a.status !== 'completed' && (() => {
+    const w = d.works.find(x=>x.id===a.workId);
+    return w && w.dueDate && w.dueDate < today;
+  })());
+  if(overdue.length === 0) return;
+  let html = `<div style="display:flex;align-items:center;gap:8px"><h3 style="margin:0">Overdue Tasks</h3><button id="close-overdue" class="ghost" style="margin-left:auto">Close</button></div>
+    <div class="small" style="margin-top:8px">You have overdue tasks. Open to view, Report Problem, or Snooze.</div><div style="margin-top:8px">`;
+  overdue.forEach(a => { const w = d.works.find(x=>x.id===a.workId); html += `<div style="padding:8px;border:1px solid var(--glass);border-radius:8px;margin-top:8px"><strong>${escape(w.title)}</strong><div class="small">${escape(w.description||'')}</div><div style="margin-top:8px;display:flex;gap:8px"><button data-open="${a.id}" class="ghost">Open</button><button data-report="${a.id}" class="ghost">Report Problem</button><button data-snooze="${a.id}" class="ghost">Snooze</button></div></div>`; });
+  html += `</div>`;
+  const card = openModal(html);
+  card.querySelector('#close-overdue').addEventListener('click', ()=> { document.getElementById('modal-root').style.display='none'; document.getElementById('modal-root').innerHTML=''; });
+  card.querySelectorAll('button[data-open]').forEach(b => b.addEventListener('click', ()=> { const id = b.getAttribute('data-open'); document.getElementById('modal-root').style.display='none'; document.getElementById('modal-root').innerHTML=''; showAssignmentModal(id); }));
+  card.querySelectorAll('button[data-report]').forEach(b => b.addEventListener('click', ()=> { const id = b.getAttribute('data-report'); document.getElementById('modal-root').style.display='none'; document.getElementById('modal-root').innerHTML=''; showReportProblemModal(id); }));
+  card.querySelectorAll('button[data-snooze]').forEach(b => b.addEventListener('click', ()=> { document.getElementById('modal-root').style.display='none'; document.getElementById('modal-root').innerHTML=''; }));
+}
+
+function showReportProblemModal(assignId){
+  const d = load(); const a = d.assignments.find(x=>x.id===assignId); if(!a) return;
+  const w = d.works.find(x=>x.id===a.workId) || {};
+  const html = `<div style="display:flex;align-items:center;gap:8px"><h3 style="margin:0">Report Problem</h3><button id="close-r" class="ghost" style="margin-left:auto">Close</button></div>
+    <div style="margin-top:8px"><strong>Work:</strong> ${escape(w.title)}</div>
+    <div style="margin-top:8px"><label class="small">Describe the blocking issue</label><textarea id="problem-text" placeholder="e.g., waiting for lab access"></textarea></div>
+    <div style="margin-top:8px;display:flex;gap:8px"><button id="submit-problem">Report</button><button id="cancel-prob" class="ghost">Cancel</button></div>`;
+  const card = openModal(html);
+  card.querySelector('#close-r').addEventListener('click', ()=> { document.getElementById('modal-root').style.display='none'; document.getElementById('modal-root').innerHTML=''; });
+  card.querySelector('#cancel-prob').addEventListener('click', ()=> { document.getElementById('modal-root').style.display='none'; document.getElementById('modal-root').innerHTML=''; });
+  card.querySelector('#submit-problem').addEventListener('click', ()=>{
+    const text = card.querySelector('#problem-text').value.trim(); if(!text){ alert('Enter the issue'); return; }
+    const hodId = document.getElementById('hod-select') ? document.getElementById('hod-select').value : null;
+    const hod = load().users.find(u => u.id === hodId) || { id: 'sys', name: 'HOD' };
+    addCommentToAssignment(assignId, { senderId: hod.id, senderName: hod.name, senderRole: 'hod', text });
+    const d2 = load(); const asg = d2.assignments.find(x=>x.id===assignId); asg.status = 'in_progress'; save(d2);
+    // add chat message to work room as well
+    const wroom = 'work-' + asg.workId;
+    const d3 = load(); d3.chats.push({ id: uid('ch'), room: wroom, senderId: hod.id, senderName: hod.name, role:'hod', text: 'Problem reported: ' + text, ts: nowISO() }); save(d3);
+    alert('Problem reported and added to thread + work chat');
+    document.getElementById('modal-root').style.display='none'; document.getElementById('modal-root').innerHTML='';
+    renderHodList(); renderWorksOverview(); populateChatRooms(); refreshChatIfOpen();
+  });
+}
+
+// ---------- Status, verify ----------
+function updateAssignmentStatus(assignId, status){
+  const d = load(); const a = d.assignments.find(x=>x.id===assignId); if(!a) return;
+  a.status = status;
+  a.completedAt = status === 'completed' ? nowISO() : null;
+  save(d); renderHodList(); renderWorksOverview(); populateChatRooms(); refreshChatIfOpen();
+}
+function toggleVerifyAssignment(assignId){
+  const d = load(); const a = d.assignments.find(x=>x.id===assignId); if(!a) return;
+  if(!a.verifiedAt){ a.verifiedAt = nowISO(); a.verifiedBy = (d.users.find(u=>u.role==='principal')||{}).name || 'Principal'; addCommentToAssignment(assignId, { senderId: d.users.find(u=>u.role==='principal')?.id, senderName: d.users.find(u=>u.role==='principal')?.name, senderRole:'principal', text: 'Verified by Principal' }); }
+  else { delete a.verifiedAt; delete a.verifiedBy; addCommentToAssignment(assignId, { senderRole:'principal', text: 'Un-verified by Principal' }); }
+  save(d); renderWorksOverview(); populateChatRooms(); refreshChatIfOpen();
+}
+
+// ---------- Chat system ----------
+function populateChatRooms(){
+  const sel = document.getElementById('chat-room'); if(!sel) return;
+  const d = load(); sel.innerHTML = '';
+  const optG = document.createElement('option'); optG.value = 'global'; optG.textContent = 'Global'; sel.appendChild(optG);
+  d.departments.forEach(dep => { const o = document.createElement('option'); o.value = 'dept-' + dep.id; o.textContent = 'Dept: ' + dep.name; sel.appendChild(o); });
+  d.works.forEach(w => { const o = document.createElement('option'); o.value = 'work-' + w.id; o.textContent = 'Work: ' + w.title; sel.appendChild(o); });
+}
+
+function openChatPanel(){ document.getElementById('chat-panel').style.display = 'flex'; populateChatRooms(); renderChatBody(); }
+function closeChatPanel(){ document.getElementById('chat-panel').style.display = 'none'; }
+
+function renderChatBody(){
+  const body = document.getElementById('chat-body'); body.innerHTML = '';
+  const room = document.getElementById('chat-room').value || 'global';
+  const d = load();
+  const msgs = d.chats.filter(c => c.room === room).sort((a,b)=> new Date(a.ts) - new Date(b.ts));
+  if(msgs.length === 0){ body.innerHTML = '<div class="small" style="padding:8px">No messages</div>'; return; }
+  msgs.forEach(m => {
+    const div = document.createElement('div'); div.className = 'chat-msg ' + ((m.senderId === (d.users.find(u=>u.role==='principal')?.id) || m.senderId === (document.getElementById('hod-select') ? document.getElementById('hod-select').value : '')) ? 'me' : '');
+    div.innerHTML = `<div style="font-weight:600">${escape(m.senderName)} <span class="small" style="font-weight:400">(${escape(m.role)})</span> <span class="small" style="color:var(--muted);margin-left:8px">${format(m.ts)}</span></div><div style="margin-top:6px">${escape(m.text)}</div>`;
+    body.appendChild(div);
+  });
+  body.scrollTop = body.scrollHeight;
+}
+
+function sendChatMessage(){
+  const input = document.getElementById('chat-input'); const text = input.value.trim(); if(!text) return;
+  const room = document.getElementById('chat-room').value || 'global';
+  const d = load();
+  // choose sender: if HOD tab visible, use selected HOD, else principal
+  const sender = (document.getElementById('hod').style.display !== 'none') ? d.users.find(u=>u.id === document.getElementById('hod-select').value) : d.users.find(u=>u.role === 'principal');
+  const sid = sender ? sender.id : 'sys'; const sname = sender ? sender.name : 'User'; const srole = sender ? sender.role : 'user';
+  d.chats.push({ id: uid('ch'), room, senderId: sid, senderName: sname, role: srole, text, ts: nowISO() });
+  save(d);
+  input.value = '';
+  renderChatBody();
+}
+
+// helpers
+function refreshChatIfOpen(){ if(document.getElementById('chat-panel').style.display !== 'none') { populateChatRooms(); renderChatBody(); } }
+
+// ---------- CSV export ----------
+function exportCSV(){
+  const d = load();
+  const rows = [['Work','HOD','Department','Status','AssignedAt','CompletedAt','VerifiedAt','Remarks']];
+  d.assignments.forEach(a=>{
+    const w = d.works.find(x=>x.id===a.workId) || {};
+    const hod = d.users.find(x=>x.id===a.hodId) || {};
+    const dep = d.departments.find(x=>x.id===hod.departmentId) || {};
+    const remarks = (a.comments||[]).map(c => `${c.senderName}: ${c.text}`).join(' | ');
+    rows.push([w.title||'', hod.name||'', dep.name||'', a.status||'', a.assignedAt||'', a.completedAt||'', a.verifiedAt||'', remarks]);
+  });
+  const csv = rows.map(r => r.map(cell => `"${String(cell||'').replace(/"/g,'""')}"`).join(',')).join('\n');
+  const blob = new Blob([csv], { type:'text/csv' }); const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url; a.download = 'works_report.csv'; a.click(); URL.revokeObjectURL(url);
+}
+
+// ---------- Add dept/hod/assign ----------
+function addDepartment(name){
+  if(!name) return;
+  const d = load(); d.departments.push({ id: uid('dep'), name }); save(d);
+  buildDeptFilterAndNewHodSelect(); renderPrincipalHodList(); renderUsersTable(); populateChatRooms();
+}
+function addHod(name, deptId){
+  if(!name || !deptId) return;
+  const d = load(); d.users.push({ id: uid('hod'), name, role:'hod', departmentId: deptId }); save(d);
+  renderPrincipalHodList(); renderHodSelectAndList(); renderUsersTable(); populateChatRooms();
+}
+function assignWork(title, desc, due, hodIds){
+  if(!title || !hodIds || hodIds.length===0) return;
+  const d = load(); const pr = d.users.find(u=>u.role==='principal') || d.users[0] || { id: 'sys' };
+  const wId = uid('w'); d.works.push({ id: wId, title, description: desc, createdBy: pr.id, dueDate: due||null, createdAt: nowISO() });
+  hodIds.forEach(hid => d.assignments.push({ id: uid('a'), workId: wId, hodId: hid, status: 'assigned', assignedAt: nowISO(), completedAt: null, verifiedAt: null, verifiedBy: null, comments: [] }));
+  save(d); renderWorksOverview(); renderHodList(); populateChatRooms();
+}
+
+// ---------- Users table ----------
+function renderUsersTable(){
+  const d = load(); const wrap = document.getElementById('users-table'); if(!wrap) return;
+  if(d.users.length === 0){ wrap.innerHTML = '<div class="no-data">No users</div>'; return; }
+  let html = '<div style="background:var(--card);border-radius:8px;overflow:hidden">';
+  d.users.forEach(u => { const dep = d.departments.find(x => x.id === u.departmentId); html += `<div style="display:flex;gap:12px;padding:8px;border-bottom:1px solid var(--glass)"><div style="width:320px"><strong>${escape(u.name)}</strong></div><div style="width:120px">${u.role}</div><div style="flex:1">${dep?escape(dep.name):'-'}</div></div>`; });
+  html += '</div>'; wrap.innerHTML = html;
+}
+
+// ---------- Utilities ----------
+function format(iso){ if(!iso) return '-'; try{ return new Date(iso).toLocaleString(); } catch(e){ return iso; } }
+function escape(s){ if(!s) return ''; return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+
+// ---------- Init & wiring ----------
+document.addEventListener('DOMContentLoaded', ()=>{
+  initTheme();
+  ensureSample();
+  buildDeptFilterAndNewHodSelect();
+  renderPrincipalHodList();
+  renderWorksOverview();
+  renderHodSelectAndList();
+  renderUsersTable();
+  populateChatRooms();
+
+  // Tabs
+  document.querySelectorAll('.tab').forEach(tab => tab.addEventListener('click', ()=>{
+    document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+    tab.classList.add('active');
+    const which = tab.dataset.tab;
+    document.getElementById('principal').style.display = which === 'principal' ? 'block' : 'none';
+    document.getElementById('hod').style.display = which === 'hod' ? 'block' : 'none';
+    document.getElementById('data').style.display = which === 'data' ? 'block' : 'none';
+  }));
+
+  // Theme toggle
+  document.getElementById('theme-btn').addEventListener('click', ()=> {
+    const cur = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
+    applyTheme(cur === 'dark' ? 'light' : 'dark');
+  });
+
+  // Assign
+  document.getElementById('assign-btn').addEventListener('click', ()=>{
+    const title = document.getElementById('p-title').value.trim();
+    if(!title){ alert('Enter title'); return; }
+    const desc = document.getElementById('p-desc').value.trim();
+    const due = document.getElementById('p-due').value || null;
+    const hodIds = Array.from(document.querySelectorAll('#principal-hod-list input[type=checkbox]')).filter(c=>c.checked).map(c=>c.dataset.id);
+    if(hodIds.length === 0){ alert('Select HOD(s)'); return; }
+    assignWork(title, desc, due, hodIds);
+    document.getElementById('p-title').value=''; document.getElementById('p-desc').value=''; document.getElementById('p-due').value='';
+    document.querySelectorAll('#principal-hod-list input[type=checkbox]').forEach(cb => cb.checked = false);
+    alert('Work assigned');
+  });
+
+  document.getElementById('clear-btn').addEventListener('click', ()=> {
+    document.getElementById('p-title').value=''; document.getElementById('p-desc').value=''; document.getElementById('p-due').value=''; document.querySelectorAll('#principal-hod-list input[type=checkbox]').forEach(cb => cb.checked = false);
+  });
+
+  // filters
+  document.getElementById('dept-filter').addEventListener('change', renderWorksOverview);
+  document.getElementById('status-filter').addEventListener('change', renderWorksOverview);
+
+  // CSV export
+  document.getElementById('export-csv').addEventListener('click', exportCSV);
+
+  // HOD select
+  document.getElementById('hod-select').addEventListener('change', ()=>{ renderHodList(); setTimeout(checkOverdueForSelectedHodAndPopup, 200); });
+  document.getElementById('check-overdue').addEventListener('click', checkOverdueForSelectedHodAndPopup);
+
+  // Data tab
+  document.getElementById('add-dept-btn').addEventListener('click', ()=>{ const name = document.getElementById('new-dept-name').value.trim(); if(!name){ alert('Enter name'); return; } addDepartment(name); document.getElementById('new-dept-name').value=''; });
+  document.getElementById('add-hod-btn').addEventListener('click', ()=>{ const name = document.getElementById('new-hod-name').value.trim(); const dep = document.getElementById('new-hod-dept').value; if(!name || !dep){ alert('Enter HOD and select dept'); return; } addHod(name, dep); document.getElementById('new-hod-name').value=''; });
+  document.getElementById('insert-sample').addEventListener('click', ()=>{ if(confirm('Reset and insert sample?')){ localStorage.removeItem(STORAGE_KEY); ensureSample(); buildDeptFilterAndNewHodSelect(); renderPrincipalHodList(); renderWorksOverview(); renderHodSelectAndList(); renderUsersTable(); populateChatRooms(); alert('Sample inserted'); }});
+  document.getElementById('wipe').addEventListener('click', ()=>{ if(confirm('Erase all stored data?')){ localStorage.removeItem(STORAGE_KEY); ensureSample(); buildDeptFilterAndNewHodSelect(); renderPrincipalHodList(); renderWorksOverview(); renderHodSelectAndList(); renderUsersTable(); populateChatRooms(); alert('Data wiped and sample re-created'); }});
+
+  // Chat controls
+  document.getElementById('open-chat').addEventListener('click', ()=>{ openChatPanel(); });
+  document.getElementById('chat-button').addEventListener('click', ()=>{ openChatPanel(); });
+  document.getElementById('close-chat').addEventListener('click', closeChatPanel);
+  document.getElementById('chat-send').addEventListener('click', sendChatMessage);
+  document.getElementById('chat-room').addEventListener('change', renderChatBody);
+  document.getElementById('chat-input').addEventListener('keydown', (e)=>{ if(e.key === 'Enter'){ sendChatMessage(); } });
+
+  // finalize
+  buildDeptFilterAndNewHodSelect();
+  renderPrincipalHodList();
+  renderWorksOverview();
+  renderHodSelectAndList();
+  renderUsersTable();
+  populateChatRooms();
+});
+
+// helper to refresh chat if open
+function refreshChatIfOpen(){ if(document.getElementById('chat-panel').style.display !== 'none'){ populateChatRooms(); renderChatBody(); } }
+
+</script>
+</body>
+</html>
